@@ -156,6 +156,7 @@ Route::middleware('auth')->group(function () {
             'vehicle-approvals/{vehicle}/reject',
             [\App\Http\Controllers\Safety\VehicleApprovalController::class, 'reject']
         )->name('vehicle-approvals.reject');
+  
     });
 
 

@@ -297,7 +297,7 @@
             <i class="bi bi-person"></i><span>Manage Profile</span>
         </a>
 
-        <a href="{{ route('safety.vehicles.index') }}"
+        <a href="{{ route('safety.vehicle-approvals.index') }}"
            class="{{ request()->routeIs('safety.vehicles.*') ? 'active' : '' }}">
             <i class="bi bi-shield-check"></i><span>Approve Vehicle</span>
         </a>

@@ -52,6 +52,7 @@ class VehicleController extends Controller
             'approval_status' => 'pending',
         ]);
 
+
         return redirect()
             ->route('student.vehicles.index')
             ->with('success', 'Vehicle submitted for approval');

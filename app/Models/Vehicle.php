@@ -13,8 +13,13 @@ class Vehicle extends Model
         'user_id',
         'plate_no',
         'type',
-        'color',
-        'status',
+        'brand',
+        'model',
+        'grant_path',
+        'approval_status',
+        'approved_by',
+        'approved_at',
+        'approval_note',
     ];
 
     public function user() { 
