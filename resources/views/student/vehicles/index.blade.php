@@ -35,18 +35,13 @@
                     <small class="text-muted text-capitalize">{{ $v->type }}</small>
                 </div>
 
+                {{-- STATUS BADGE --}}
                 @if($v->approval_status === 'approved')
-                    <span class="badge bg-success bg-opacity-10 text-success">
-                        Approved
-                    </span>
+                    <span class="badge bg-success">Approved</span>
                 @elseif($v->approval_status === 'pending')
-                    <span class="badge bg-warning bg-opacity-10 text-warning">
-                        Pending
-                    </span>
+                    <span class="badge bg-warning text-dark">Pending</span>
                 @else
-                    <span class="badge bg-danger bg-opacity-10 text-danger">
-                        Rejected
-                    </span>
+                    <span class="badge bg-danger">Rejected</span>
                 @endif
             </div>
 
@@ -65,16 +60,6 @@
                 <small class="text-muted">
                     {{ ucfirst($v->approval_status) }} status
                 </small>
-
-                @if($v->approval_status === 'pending')
-                    <div class="small text-warning mt-1">
-                        ⏳ Awaiting safety approval
-                    </div>
-                @elseif($v->approval_status === 'rejected')
-                    <div class="small text-danger mt-1">
-                        ❌ Rejected. Please re-register with correct document.
-                    </div>
-                @endif
             </div>
 
             <div class="text-muted small mb-3">
@@ -87,10 +72,11 @@
                 {{-- VIEW --}}
                 <button class="btn btn-outline-primary btn-sm w-100"
                         onclick="openViewModal(
-                            '{{ $v->plate_no }}',
-                            '{{ ucfirst($v->type) }}',
-                            '{{ ucfirst($v->approval_status) }}',
-                            '{{ $v->created_at->format('d M Y') }}'
+                            @js($v->plate_no),
+                            @js(ucfirst($v->type)),
+                            @js($v->approval_status),
+                            @js($v->created_at->format('d M Y')),
+                            @js(route('student.vehicles.edit', $v->id))
                         )">
                     <i class="bi bi-eye me-1"></i> View
                 </button>
@@ -99,8 +85,8 @@
                 @if($v->approval_status !== 'approved')
                     <button class="btn btn-outline-danger btn-sm w-100"
                             onclick="openDeleteModal(
-                                '{{ route('student.vehicles.destroy', $v) }}',
-                                '{{ $v->plate_no }}'
+                                @js(route('student.vehicles.destroy', $v->id)),
+                                @js($v->plate_no)
                             )">
                         <i class="bi bi-trash me-1"></i> Delete
                     </button>
@@ -134,38 +120,55 @@
 <div class="modal fade" id="viewVehicleModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow rounded-4">
+
             <div class="modal-header">
-                <h5 class="fw-bold">Vehicle Details</h5>
+                <h5 class="fw-bold">
+                    <i class="bi bi-car-front me-2"></i> Vehicle Details
+                </h5>
                 <button class="btn-close" data-bs-dismiss="modal"></button>
             </div>
 
             <div class="modal-body">
                 <p><strong>Plate Number:</strong> <span id="vmPlate"></span></p>
-                <p><strong>Type:</strong> <span id="vmType"></span></p>
-                <p><strong>Status:</strong> <span id="vmStatus"></span></p>
-                <p><strong>Registered:</strong> <span id="vmDate"></span></p>
+                <p><strong>Vehicle Type:</strong> <span id="vmType"></span></p>
+
+                <p class="d-flex align-items-center gap-2">
+                    <strong>Status:</strong>
+                    <span id="vmStatusBadge"
+                          class="badge rounded-pill px-4 py-2"></span>
+                </p>
+
+                <p><strong>Registered On:</strong> <span id="vmDate"></span></p>
+
+                <div class="text-muted small mt-2" id="vmStatusNote"></div>
             </div>
+
+            <div class="modal-footer">
+                <a href="#"
+                   id="vmEditBtn"
+                   class="btn btn-warning me-auto"
+                   style="display:none">
+                    <i class="bi bi-pencil-square me-1"></i> Edit
+                </a>
+
+                <button class="btn btn-secondary" data-bs-dismiss="modal">
+                    Close
+                </button>
+            </div>
+
         </div>
     </div>
 </div>
-{{-- EDIT --}}
-    @if($v->approval_status !== 'approved')
-        <a href="{{ route('student.vehicles.edit', $v->id) }}"
-           class="btn btn-outline-warning btn-sm w-100">
-            <i class="bi bi-pencil-square me-1"></i> Edit
-        </a>
-    @else
-        <button class="btn btn-outline-secondary btn-sm w-100" disabled>
-            <i class="bi bi-lock"></i> Locked
-        </button>
-    @endif
 
 {{-- DELETE MODAL --}}
 <div class="modal fade" id="deleteVehicleModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow rounded-4">
+
             <div class="modal-header">
-                <h5 class="fw-bold text-danger">Confirm Deletion</h5>
+                <h5 class="fw-bold text-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i> Confirm Deletion
+                </h5>
                 <button class="btn-close" data-bs-dismiss="modal"></button>
             </div>
 
@@ -188,6 +191,7 @@
                     <button class="btn btn-danger">Delete</button>
                 </form>
             </div>
+
         </div>
     </div>
 </div>
@@ -203,11 +207,38 @@ function filterStatus(status) {
     });
 }
 
-function openViewModal(plate, type, status, date) {
+function openViewModal(plate, type, statusRaw, date, editUrl) {
+    const status = (statusRaw ?? '').toLowerCase().trim();
+
     document.getElementById('vmPlate').innerText = plate;
     document.getElementById('vmType').innerText = type;
-    document.getElementById('vmStatus').innerText = status;
     document.getElementById('vmDate').innerText = date;
+
+    const badge = document.getElementById('vmStatusBadge');
+    const note  = document.getElementById('vmStatusNote');
+    const edit  = document.getElementById('vmEditBtn');
+
+    badge.className = 'badge rounded-pill px-4 py-2';
+    note.innerText  = '';
+    edit.style.display = 'none';
+
+    if (status === 'pending') {
+        badge.classList.add('bg-warning','text-dark');
+        badge.innerText = 'Pending';
+        note.innerText = 'Awaiting approval. You may still edit this vehicle.';
+        edit.href = editUrl;
+        edit.style.display = 'inline-block';
+    }
+    else if (status === 'approved') {
+        badge.classList.add('bg-success');
+        badge.innerText = 'Approved';
+        note.innerText = 'Vehicle approved. Editing is locked.';
+    }
+    else {
+        badge.classList.add('bg-danger');
+        badge.innerText = 'Rejected';
+        note.innerText = 'Vehicle rejected. Editing is locked.';
+    }
 
     new bootstrap.Modal(
         document.getElementById('viewVehicleModal')
